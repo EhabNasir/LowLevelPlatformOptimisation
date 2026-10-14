@@ -7,6 +7,8 @@
 #include "Box.h"
 #include "Floor.h"
 
+#include<optick.h>
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace
@@ -322,6 +324,8 @@ DX11Framework::~DX11Framework()
 
 void DX11Framework::Simulate(float deltaTime)
 {
+    OPTICK_EVENT("Simulate");
+
     for (std::unique_ptr<GameObject> & object : _objects)
     {
         if (PhysicsObject * physics = object->GetPhysics())
@@ -333,7 +337,9 @@ void DX11Framework::Simulate(float deltaTime)
 }
 
 void DX11Framework::Draw()
-{                
+{    
+    OPTICK_EVENT("Draw");
+
     SetUpUI();
 
     //Present unbinds render target, so rebind and clear at start of each frame

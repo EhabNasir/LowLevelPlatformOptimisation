@@ -48,11 +48,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			while (accumulator >= fixedDeltaTime)
 			{
 				application.Simulate(fixedDeltaTime);
-				OPTICK_FRAME("Hello Nigger");
 
 				accumulator -= fixedDeltaTime;
 			}
 
+			OPTICK_FRAME("Simulation");
 			application.Draw();
 		}
 	}

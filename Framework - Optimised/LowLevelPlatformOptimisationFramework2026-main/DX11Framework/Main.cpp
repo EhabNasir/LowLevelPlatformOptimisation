@@ -39,7 +39,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 			QueryPerformanceCounter(&currentTime);
 
-			float deltaTime = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart);
+			float deltaTime = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart) / static_cast<float>(frequency.QuadPart);
 
 			lastTime = currentTime;
 			deltaTime = min(deltaTime, 0.25f);
@@ -48,11 +48,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			while (accumulator >= fixedDeltaTime)
 			{
 				application.Simulate(fixedDeltaTime);
-				OPTICK_FRAME("Hello Nigger");
 
 				accumulator -= fixedDeltaTime;
 			}
 
+			OPTICK_FRAME("Hello Nigger");
 			application.Draw();
 		}
 	}
