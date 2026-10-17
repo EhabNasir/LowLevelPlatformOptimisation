@@ -14,12 +14,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	application.Initialise(hInstance, nCmdShow);
 
 	LARGE_INTEGER frequency;
-
 	QueryPerformanceFrequency(&frequency);
 
 	auto const frequencyMs = static_cast<float>(frequency.QuadPart);
-	LARGE_INTEGER lastTime;
 
+	LARGE_INTEGER lastTime;
 	QueryPerformanceCounter(&lastTime);
 
 	constexpr float fixedDeltaTime = 1.f / 60.f;
@@ -35,11 +34,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		}
 		else
 		{
+			OPTICK_FRAME("Simulation");
+			
 			LARGE_INTEGER currentTime;
-
 			QueryPerformanceCounter(&currentTime);
 
-			float deltaTime = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart);
+			//converting into seconds
+			float deltaTime = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart) / static_cast<float>(frequency.QuadPart);
 
 			lastTime = currentTime;
 			deltaTime = min(deltaTime, 0.25f);
@@ -52,7 +53,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 				accumulator -= fixedDeltaTime;
 			}
 
-			OPTICK_FRAME("Simulation");
 			application.Draw();
 		}
 	}
