@@ -5,6 +5,8 @@
 #include <memory>
 #include "GameObject.h"
 
+struct Floor;
+
 struct Box final : public GameObject
 {
 	struct Collider final : public PhysicsObject
@@ -13,12 +15,16 @@ struct Box final : public GameObject
 
 		Vector3 Extents() const { return _extents; }
 
-		void Simulate(std::list<std::unique_ptr<GameObject>> & objects, float delatTime) override;
+		void Simulate(std::vector<std::unique_ptr<GameObject>> & objects, float delatTime) override;
+
+		void SetFloor(const Floor* floor) { _floor = floor; }
 
 		private:
 		Vector3 _extents;
 
-		bool CheckCollision(Collider that) const;
+		const Floor* _floor = nullptr;
+
+		bool CheckCollision(const Collider & that) const;
 
 		void ResolveCollision(Collider & that);
 	};

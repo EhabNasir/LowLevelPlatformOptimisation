@@ -326,6 +326,9 @@ void DX11Framework::Simulate(float deltaTime)
 {
     OPTICK_EVENT("Simulate");
 
+    //Start of profiling clock
+    const auto start = std::chrono::steady_clock::now();
+
     for (std::unique_ptr<GameObject> & object : _objects)
     {
         if (PhysicsObject * physics = object->GetPhysics())
@@ -334,6 +337,11 @@ void DX11Framework::Simulate(float deltaTime)
             physics->Simulate(_objects, deltaTime);
         }
     }
+
+    //End of profiling clock
+    const auto end = std::chrono::steady_clock::now();
+    _simTotalMs += std::chrono::duration<double, std::milli>(end - start).count();
+    ++_simCount;
 }
 
 void DX11Framework::Draw()
@@ -377,6 +385,10 @@ void DX11Framework::SetUpUI() const
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
     ImGui::Begin("Simple Metrics");
+
+    //SHow timer
+    ImGui::Text("Simulate avg: %.3f ms", _simCount ? _simTotalMs / _simCount : 0.0);
+
     ImGui::End();
 }
 

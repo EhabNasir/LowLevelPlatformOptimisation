@@ -48,7 +48,7 @@ Floor::Floor(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11PixelShader> pix
     ThrowOnFail(device->CreateBuffer(&indexBufferDesc, &indexData, _indexBuffer.GetAddressOf()));
 }
 
-bool Floor::IsIntersecting(Box::Collider box) const
+bool Floor::IsIntersecting(const Box::Collider & box) const
 {
     float const minBoxY = box.Position().y - box.Extents().y;
     float const maxBoxY = box.Position().y + box.Extents().y;

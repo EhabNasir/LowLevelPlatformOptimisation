@@ -11,6 +11,10 @@
 #include <memory>
 #include "GameObject.h"
 #include "ScanCode.h"
+#include "ThreadPool.h"
+
+#include <chrono>
+#include <vector>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -24,6 +28,10 @@ struct ConstantBuffer
 
 class DX11Framework
 {
+	//Profiling Varibales
+	double _simTotalMs = 0.0;
+	int _simCount = 0;
+
 	int _WindowWidth = 1280;
 	int _WindowHeight = 768;
 
@@ -51,7 +59,9 @@ class DX11Framework
 
 	ConstantBuffer _cbData;
 
-	std::list<std::unique_ptr<GameObject>> _objects;
+	std::vector<std::unique_ptr<GameObject>> _objects;
+
+	ThreadPool _pool;
 
 public:
 	void Initialise(HINSTANCE hInstance, int nCmdShow);
@@ -68,6 +78,7 @@ public:
 
 	LRESULT HandleMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+	void SimulateRange(size_t begin, size_t end, float deltaTime);
 	void Simulate(float deltaTime);
 	void Draw();
 	void SetUpUI() const;

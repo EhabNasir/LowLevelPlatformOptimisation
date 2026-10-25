@@ -7,7 +7,7 @@ struct Floor final : public GameObject
 {
 	explicit Floor(ID3D11Device * device, Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader, Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader, Vector3 position);
 
-	bool IsIntersecting(Box::Collider) const;
+	bool IsIntersecting(const Box::Collider &) const;
 
 	PhysicsObject* GetPhysics() override { return nullptr; }
 

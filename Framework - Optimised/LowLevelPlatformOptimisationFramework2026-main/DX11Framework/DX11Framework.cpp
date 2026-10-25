@@ -7,11 +7,17 @@
 #include "Box.h"
 #include "Floor.h"
 
+#include <optick.h>
+#include <algorithm>
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace
 {
     constexpr size_t boxCount = 512;
+
+    //keeping track opf chunks
+    constexpr size_t simulationChunks = 8;
 
     LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
@@ -295,21 +301,20 @@ void DX11Framework::InitRunTimeData()
     XMMATRIX perspective = XMMatrixPerspectiveFovLH(XMConvertToRadians(90), aspect, 0.01f, 100.0f);
     XMStoreFloat4x4(&_Projection, perspective);
 
-    _objects.push_back(std::make_unique<Floor>(_device.Get(), _pixelShader, _vertexShader, Vector3
-    {
-        .x = 0,
-        .y = 0,
-        .z = 0,
-    }));
+    auto floor = std::make_unique<Floor>(_device.Get(), _pixelShader, _vertexShader, Vector3{ 0, 0, 0 });
+    const Floor* floorPtr = floor.get();
+    _objects.push_back(std::move(floor));
 
     for (int i = 0; i < boxCount; i += 1)
     {
-        _objects.push_back(std::make_unique<Box>(_device.Get(), _pixelShader, _vertexShader, Vector3
-        {
-            .x = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
-            .y = 10.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 1.0f)),
-            .z = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
-        }));
+        auto box = std::make_unique<Box>(_device.Get(), _pixelShader, _vertexShader, Vector3
+            {
+                .x = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
+                .y = 10.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 1.0f)),
+                .z = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
+            });
+        static_cast<Box::Collider*>(box->GetPhysics())->SetFloor(floorPtr);
+        _objects.push_back(std::move(box));
     }
 }
 
@@ -320,11 +325,12 @@ DX11Framework::~DX11Framework()
     ImGui::DestroyContext();
 }
 
-void DX11Framework::Simulate(float deltaTime)
+//Process each chunk with simrange
+void DX11Framework::SimulateRange(size_t begin, size_t end, float deltaTime)
 {
-    for (std::unique_ptr<GameObject> & object : _objects)
+    for (size_t i = begin; i < end; ++i)
     {
-        if (PhysicsObject * physics = object->GetPhysics())
+        if (PhysicsObject* physics = _objects[i]->GetPhysics())
         {
             physics->Impulse({ 0.f, gravity * deltaTime, 0.f });
             physics->Simulate(_objects, deltaTime);
@@ -332,8 +338,42 @@ void DX11Framework::Simulate(float deltaTime)
     }
 }
 
+void DX11Framework::Simulate(float deltaTime)
+{
+    OPTICK_EVENT("Simulate");
+
+    //Start of profiling clock
+    const auto start = std::chrono::steady_clock::now();
+
+    //Replacing original loop to utilise chunks
+    const size_t count = _objects.size();
+    const size_t chunkSize = (count + simulationChunks - 1) / simulationChunks; // round up
+
+    for (size_t chunk = 0; chunk < simulationChunks; ++chunk)
+    {
+        const size_t begin = chunk * chunkSize;
+        const size_t end = (std::min)(begin + chunkSize, count);
+        if (begin >= end)
+            break;
+
+        _pool.Submit([this, begin, end, deltaTime]
+        {
+            SimulateRange(begin, end, deltaTime);
+        });
+    }
+
+    _pool.Wait();
+
+    //End of profiling clock
+    const auto end = std::chrono::steady_clock::now();
+    _simTotalMs += std::chrono::duration<double, std::milli>(end - start).count();
+    ++_simCount;
+}
+
 void DX11Framework::Draw()
-{                
+{    
+    OPTICK_EVENT("Draw");
+
     SetUpUI();
 
     //Present unbinds render target, so rebind and clear at start of each frame
@@ -371,6 +411,10 @@ void DX11Framework::SetUpUI() const
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
     ImGui::Begin("Simple Metrics");
+
+    //SHow timer
+    ImGui::Text("Simulate avg: %.3f ms", _simCount ? _simTotalMs / _simCount : 0.0);
+
     ImGui::End();
 }
 

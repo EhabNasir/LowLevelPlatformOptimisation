@@ -55,7 +55,7 @@ namespace
     });
 }
 
-bool Box::Collider::CheckCollision(Collider that) const
+bool Box::Collider::CheckCollision(const Collider & that) const
 {
     return (std::abs(Position().x - that.Position().x) * 2 < (_extents.x + that._extents.x)) &&
         (std::abs(Position().y - that.Position().y) * 2 < (_extents.y + that._extents.y)) &&
@@ -92,28 +92,22 @@ void Box::Collider::ResolveCollision(Collider & that)
     that.Impulse({j * -normal.x, j * -normal.y, j * -normal.z});
 }
 
-void Box::Collider::Simulate(std::list<std::unique_ptr<GameObject>> & objects, float deltaTime)
+void Box::Collider::Simulate(std::vector<std::unique_ptr<GameObject>> & objects, float deltaTime)
 {
     PhysicsObject::Simulate(objects, deltaTime);
 
-    for (std::unique_ptr<GameObject> & object : objects)
+    if (_floor && _floor->IsIntersecting(*this))
     {
-        if (auto const floor = reinterpret_cast<Floor*>(object.get()))
-        {
-            if (floor->IsIntersecting(*this))
-            {
-                Impulse({ 0.f, -Velocity().y, 0.f });
-            }
-        }
+        Impulse({ 0.f, -Velocity().y, 0.f });
+    }
 
+    for (std::unique_ptr<GameObject>& object : objects)
+    {
         if (auto const collider = reinterpret_cast<Collider*>(object->GetPhysics()))
         {
-            if (collider != this)
+            if (collider != this && CheckCollision(*collider))
             {
-                if (CheckCollision(*collider))
-                {
-                    return ResolveCollision(*collider);
-                }
+                return ResolveCollision(*collider);
             }
         }
     }

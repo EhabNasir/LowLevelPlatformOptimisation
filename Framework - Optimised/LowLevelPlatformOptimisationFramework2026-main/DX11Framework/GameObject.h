@@ -3,6 +3,7 @@
 #include <d3d11_4.h>
 #include <list>
 #include <memory>
+#include <vector>
 
 constexpr float gravity = -.98f;
 
@@ -33,7 +34,7 @@ struct PhysicsObject
 {
 	explicit PhysicsObject(Vector3 position) : _position{ position } {}
 
-	virtual void Simulate(std::list<std::unique_ptr<GameObject>> & objects, float deltaTime)
+	virtual void Simulate(std::vector<std::unique_ptr<GameObject>> & objects, float deltaTime)
 	{
 		_position.x += _velocity.x * deltaTime;
 		_position.y += _velocity.y * deltaTime;

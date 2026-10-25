@@ -11,6 +11,7 @@
 #include <memory>
 #include "GameObject.h"
 #include "ScanCode.h"
+#include <chrono>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -24,6 +25,10 @@ struct ConstantBuffer
 
 class DX11Framework
 {
+	//Profiling Varibales
+	double _simTotalMs = 0.0;
+	int _simCount = 0;
+
 	int _WindowWidth = 1280;
 	int _WindowHeight = 768;
 
