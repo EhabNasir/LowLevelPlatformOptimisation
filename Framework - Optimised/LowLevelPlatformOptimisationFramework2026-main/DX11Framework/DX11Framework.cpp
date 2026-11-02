@@ -328,6 +328,8 @@ DX11Framework::~DX11Framework()
 //Process each chunk with simrange
 void DX11Framework::SimulateRange(size_t begin, size_t end, float deltaTime)
 {
+    OPTICK_EVENT("SimulateChunk");
+
     for (size_t i = begin; i < end; ++i)
     {
         if (PhysicsObject* physics = _objects[i]->GetPhysics())
@@ -401,7 +403,7 @@ void DX11Framework::Draw()
     }
 
     RenderUI();
-    _swapChain->Present(0, 0);
+    _swapChain->Present(1, 0);
 }
 
 void DX11Framework::SetUpUI() const

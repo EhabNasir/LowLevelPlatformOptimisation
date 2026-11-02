@@ -5,6 +5,7 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <optick.h>
 
 class ThreadPool
 {
@@ -57,6 +58,8 @@ private:
     
     void WorkerLoop(std::stop_token st)
     {
+        OPTICK_THREAD("Worker");
+
         while (true)
         {
             std::function<void()> task;
