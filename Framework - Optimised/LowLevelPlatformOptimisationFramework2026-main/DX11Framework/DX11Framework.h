@@ -9,12 +9,14 @@
 #include <array>
 #include <list>
 #include <memory>
+
 #include "GameObject.h"
 #include "ScanCode.h"
 #include "ThreadPool.h"
 
 #include <chrono>
 #include <vector>
+#include <cstdint>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -63,6 +65,14 @@ class DX11Framework
 
 	ThreadPool _pool;
 
+	//Testing data
+	uint64_t _stepCount = 0;
+	uint64_t _checksum = 0;
+	bool _checksumTaken = false;
+
+	bool _usingThreadPool = true;
+	bool _toggleVsync = false;
+
 public:
 	void Initialise(HINSTANCE hInstance, int nCmdShow);
 	void CreateWindowHandle(HINSTANCE hInstance, int nCmdShow);
@@ -78,9 +88,14 @@ public:
 
 	LRESULT HandleMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+	uint64_t HashState() const;
+
 	void SimulateRange(size_t begin, size_t end, float deltaTime);
 	void Simulate(float deltaTime);
 	void Draw();
-	void SetUpUI() const;
+	void SetUpUI();
 	void RenderUI();
+
+	void CreateScene();
+	void ResetSim();
 };

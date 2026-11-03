@@ -9,6 +9,8 @@
 
 #include <optick.h>
 #include <algorithm>
+#include <bit>
+#include <cstdint>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -18,6 +20,8 @@ namespace
 
     //keeping track opf chunks
     constexpr size_t simulationChunks = 8;
+
+    constexpr uint64_t checksumStep = 600;
 
     LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
@@ -301,6 +305,30 @@ void DX11Framework::InitRunTimeData()
     XMMATRIX perspective = XMMatrixPerspectiveFovLH(XMConvertToRadians(90), aspect, 0.01f, 100.0f);
     XMStoreFloat4x4(&_Projection, perspective);
 
+    //auto floor = std::make_unique<Floor>(_device.Get(), _pixelShader, _vertexShader, Vector3{ 0, 0, 0 });
+    //const Floor* floorPtr = floor.get();
+    //_objects.push_back(std::move(floor));
+
+    //for (int i = 0; i < boxCount; i += 1)
+    //{
+    //    auto box = std::make_unique<Box>(_device.Get(), _pixelShader, _vertexShader, Vector3
+    //        {
+    //            .x = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
+    //            .y = 10.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 1.0f)),
+    //            .z = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 20.0f)),
+    //        });
+    //    static_cast<Box::Collider*>(box->GetPhysics())->SetFloor(floorPtr);
+    //    _objects.push_back(std::move(box));
+    //}
+
+    CreateScene();
+}
+
+void DX11Framework::CreateScene()
+{
+    srand(1);
+    _objects.clear();
+
     auto floor = std::make_unique<Floor>(_device.Get(), _pixelShader, _vertexShader, Vector3{ 0, 0, 0 });
     const Floor* floorPtr = floor.get();
     _objects.push_back(std::move(floor));
@@ -316,6 +344,16 @@ void DX11Framework::InitRunTimeData()
         static_cast<Box::Collider*>(box->GetPhysics())->SetFloor(floorPtr);
         _objects.push_back(std::move(box));
     }
+}
+
+void DX11Framework::ResetSim()
+{
+    CreateScene();
+    _stepCount = 0;
+    _checksum = 0;
+    _checksumTaken = false;
+    _simTotalMs = 0.0;
+    _simCount = 0;
 }
 
 DX11Framework::~DX11Framework()
@@ -351,6 +389,7 @@ void DX11Framework::Simulate(float deltaTime)
     const size_t count = _objects.size();
     const size_t chunkSize = (count + simulationChunks - 1) / simulationChunks; // round up
 
+
     for (size_t chunk = 0; chunk < simulationChunks; ++chunk)
     {
         const size_t begin = chunk * chunkSize;
@@ -358,18 +397,43 @@ void DX11Framework::Simulate(float deltaTime)
         if (begin >= end)
             break;
 
-        _pool.Submit([this, begin, end, deltaTime]
+        //_pool.Submit([this, begin, end, deltaTime]
+        //{
+        //    SimulateRange(begin, end, deltaTime);
+        //});
+
+        if (_usingThreadPool)
+        {
+            _pool.Submit([this, begin, end, deltaTime]
+                {
+                    SimulateRange(begin, end, deltaTime);
+                });
+        }
+        else
         {
             SimulateRange(begin, end, deltaTime);
-        });
+        }
     }
 
-    _pool.Wait();
+    //_pool.Wait();
+
+    if (_usingThreadPool)
+    {
+        OPTICK_EVENT("PoolWait");
+        _pool.Wait();
+    }
 
     //End of profiling clock
     const auto end = std::chrono::steady_clock::now();
     _simTotalMs += std::chrono::duration<double, std::milli>(end - start).count();
     ++_simCount;
+
+    ++_stepCount;
+    if (_stepCount == checksumStep)
+    {
+        _checksum = HashState();
+        _checksumTaken = true;
+    }
 }
 
 void DX11Framework::Draw()
@@ -403,10 +467,10 @@ void DX11Framework::Draw()
     }
 
     RenderUI();
-    _swapChain->Present(1, 0);
+    _swapChain->Present(_toggleVsync ? 1 : 0, 0);
 }
 
-void DX11Framework::SetUpUI() const
+void DX11Framework::SetUpUI()
 {
     //Can be done at any point in a frame
     ImGui_ImplDX11_NewFrame();
@@ -417,6 +481,17 @@ void DX11Framework::SetUpUI() const
     //SHow timer
     ImGui::Text("Simulate avg: %.3f ms", _simCount ? _simTotalMs / _simCount : 0.0);
 
+    ImGui::Text("Step: %llu", static_cast<unsigned long long>(_stepCount));
+    if (_checksumTaken)
+        ImGui::Text("Hash @ step %llu: %016llX", static_cast<unsigned long long>(checksumStep), static_cast<unsigned long long>(_checksum));
+    else
+        ImGui::Text("Hash: waiting for step %llu", static_cast<unsigned long long>(checksumStep));
+
+    ImGui::Checkbox("Use thread pool", &_usingThreadPool);
+    if (ImGui::Button("Restart simulation")) ResetSim();
+
+    ImGui::Checkbox("VSync", &_toggleVsync);
+
     ImGui::End();
 }
 
@@ -425,4 +500,21 @@ void DX11Framework::RenderUI()
     // Must be done after drawing objects and before present
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+uint64_t DX11Framework::HashState() const
+{
+    uint64_t hash = 1469598103934665603ull;
+    auto mix = [&hash](float value)
+        {
+            hash ^= std::bit_cast<uint32_t>(value);
+            hash *= 1099511628211ull;
+        };
+
+    for (const auto& object : _objects)
+    {
+        const Vector3 p = object->Position();
+        mix(p.x); mix(p.y); mix(p.z);
+    }
+    return hash;
 }
