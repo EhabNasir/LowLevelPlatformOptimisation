@@ -92,27 +92,47 @@ void Box::Collider::ResolveCollision(Collider & that)
     that.Impulse({j * -normal.x, j * -normal.y, j * -normal.z});
 }
 
-void Box::Collider::Simulate(std::vector<std::unique_ptr<GameObject>> & objects, float deltaTime)
+void Box::Collider::Simulate(std::vector<std::unique_ptr<GameObject>>& objects, float deltaTime)
 {
-    PhysicsObject::Simulate(objects, deltaTime);
-
-    if (_floor && _floor->IsIntersecting(*this))
+    if (!useLocking)
     {
-        Impulse({ 0.f, -Velocity().y, 0.f });
+        PhysicsObject::Simulate(objects, deltaTime);
+
+        if (_floor && _floor->IsIntersecting(*this))
+            Impulse({ 0.f, -Velocity().y, 0.f });
+
+        for (std::unique_ptr<GameObject>& object : objects)
+        {
+            auto const collider = static_cast<Collider*>(object->GetPhysics());
+            if (collider && collider != this && CheckCollision(*collider))
+                return ResolveCollision(*collider);
+        }
+        return;
+    }
+
+    {
+        std::scoped_lock lock(Mutex());
+        PhysicsObject::Simulate(objects, deltaTime);
+
+        if (_floor && _floor->IsIntersecting(*this))
+            Impulse({ 0.f, -Velocity().y, 0.f });
     }
 
     for (std::unique_ptr<GameObject>& object : objects)
     {
-        if (auto const collider = reinterpret_cast<Collider*>(object->GetPhysics()))
+        auto const collider = static_cast<Collider*>(object->GetPhysics());
+        if (!collider || collider == this)
+            continue;
+
+        std::scoped_lock lock(Mutex(), collider->Mutex());
+
+        if (CheckCollision(*collider))
         {
-            if (collider != this && CheckCollision(*collider))
-            {
-                return ResolveCollision(*collider);
-            }
+            ResolveCollision(*collider);
+            return;
         }
     }
 }
-
 Box::Box(ID3D11Device * device, Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader, Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader, Vector3 position)
 {
     _collider = std::make_unique<Collider>(position, Vector3{1, 1, 1});

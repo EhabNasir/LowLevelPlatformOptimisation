@@ -4,6 +4,7 @@
 #include <list>
 #include <memory>
 #include <vector>
+#include <mutex>
 
 constexpr float gravity = -.98f;
 
@@ -30,6 +31,20 @@ struct GameObject
 	virtual PhysicsObject* GetPhysics() = 0;
 };
 
+
+struct BodyState
+{
+	Vector3 position;
+	Vector3 velocity;
+	bool isBody = false;   //false for the floor, as no physics
+};
+
+struct BodyResult
+{
+	Vector3 position;
+	Vector3 velocity;
+};
+
 struct PhysicsObject
 {
 	explicit PhysicsObject(Vector3 position) : _position{ position } {}
@@ -52,8 +67,13 @@ struct PhysicsObject
 
 	Vector3 Velocity() const { return _velocity; }
 
+	std::mutex& Mutex() const { return _mutex; }
+	static inline bool useLocking = true;
+
 	private:
 	Vector3 _position;
 
 	Vector3 _velocity;
+
+	mutable std::mutex _mutex;
 };

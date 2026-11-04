@@ -372,8 +372,21 @@ void DX11Framework::SimulateRange(size_t begin, size_t end, float deltaTime)
     {
         if (PhysicsObject* physics = _objects[i]->GetPhysics())
         {
-            physics->Impulse({ 0.f, gravity * deltaTime, 0.f });
-            physics->Simulate(_objects, deltaTime);
+            //physics->Impulse({ 0.f, gravity * deltaTime, 0.f });
+            if (PhysicsObject* physics = _objects[i]->GetPhysics())
+            {
+                if (PhysicsObject::useLocking)
+                {
+                    std::scoped_lock lock(physics->Mutex());
+                    physics->Impulse({ 0.f, gravity * deltaTime, 0.f });
+                }
+                else
+                {
+                    physics->Impulse({ 0.f, gravity * deltaTime, 0.f });
+                }
+
+                physics->Simulate(_objects, deltaTime);
+            }
         }
     }
 }
@@ -389,6 +402,7 @@ void DX11Framework::Simulate(float deltaTime)
     const size_t count = _objects.size();
     const size_t chunkSize = (count + simulationChunks - 1) / simulationChunks; // round up
 
+    TakeSnapshot();
 
     for (size_t chunk = 0; chunk < simulationChunks; ++chunk)
     {
@@ -490,7 +504,10 @@ void DX11Framework::SetUpUI()
     ImGui::Checkbox("Use thread pool", &_usingThreadPool);
     if (ImGui::Button("Restart simulation")) ResetSim();
 
+    ImGui::Checkbox("Use mutex locking", &PhysicsObject::useLocking);
+    
     ImGui::Checkbox("VSync", &_toggleVsync);
+
 
     ImGui::End();
 }
@@ -517,4 +534,19 @@ uint64_t DX11Framework::HashState() const
         mix(p.x); mix(p.y); mix(p.z);
     }
     return hash;
+}
+
+void DX11Framework::TakeSnapshot()
+{
+    _snapshot.resize(_objects.size());
+
+    _results.resize(_objects.size());
+
+    for (size_t i = 0; i < _objects.size(); ++i)
+    {
+        if (PhysicsObject* physics = _objects[i]->GetPhysics())
+            _snapshot[i] = { physics->Position(), physics->Velocity(), true };
+        else
+            _snapshot[i] = { {}, {}, false };
+    }
 }

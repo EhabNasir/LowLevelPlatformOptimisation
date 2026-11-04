@@ -48,34 +48,28 @@ Floor::Floor(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11PixelShader> pix
     ThrowOnFail(device->CreateBuffer(&indexBufferDesc, &indexData, _indexBuffer.GetAddressOf()));
 }
 
-bool Floor::IsIntersecting(const Box::Collider & box) const
+bool Floor::IsIntersecting(Vector3 position, Vector3 extents) const
 {
-    float const minBoxY = box.Position().y - box.Extents().y;
-    float const maxBoxY = box.Position().y + box.Extents().y;
+    float const minBoxY = position.y - extents.y;
+    float const maxBoxY = position.y + extents.y;
 
     if (Position().y < minBoxY || Position().y > maxBoxY)
-    {
         return false;
-    }
 
-    float const xDistance = std::abs(box.Position().x - Position().x);
-    float const xDistanceMax = box.Extents().x + _extents.x;
-
-    if (xDistance > xDistanceMax)
-    {
+    if (std::abs(position.x - Position().x) > extents.x + _extents.x)
         return false;
-    }
 
-    float const zDistance = std::abs(box.Position().z - Position().z);
-    float const zDistanceMax = box.Extents().z + _extents.y;
-
-    if (zDistance > zDistanceMax)
-    {
+    if (std::abs(position.z - Position().z) > extents.z + _extents.y)
         return false;
-    }
 
     return true;
 }
+
+bool Floor::IsIntersecting(const Box::Collider& box) const
+{
+    return IsIntersecting(box.Position(), box.Extents());
+}
+
 
 void Floor::Render(ID3D11DeviceContext * context)
 {

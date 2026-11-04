@@ -28,6 +28,7 @@ struct ConstantBuffer
 	XMMATRIX World;
 };
 
+
 class DX11Framework
 {
 	//Profiling Varibales
@@ -62,6 +63,8 @@ class DX11Framework
 	ConstantBuffer _cbData;
 
 	std::vector<std::unique_ptr<GameObject>> _objects;
+	std::vector<BodyState> _snapshot;
+	std::vector<BodyResult> _results;
 
 	ThreadPool _pool;
 
@@ -95,6 +98,8 @@ public:
 	void Draw();
 	void SetUpUI();
 	void RenderUI();
+
+	void TakeSnapshot();
 
 	void CreateScene();
 	void ResetSim();

@@ -9,6 +9,8 @@ struct Floor final : public GameObject
 
 	bool IsIntersecting(const Box::Collider &) const;
 
+	bool IsIntersecting(Vector3 position, Vector3 extents) const;
+
 	PhysicsObject* GetPhysics() override { return nullptr; }
 
 	Vector3 Position() const override { return { 0, 0, 0 }; }
