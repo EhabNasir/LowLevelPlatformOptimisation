@@ -6,11 +6,14 @@
 #include "IMGUI/imgui_impl_win32.h"
 #include "Box.h"
 #include "Floor.h"
+#include "MemoryTracker.h"
 
 #include <optick.h>
 #include <algorithm>
 #include <bit>
 #include <cstdint>
+#include <cstdio>
+#include <new>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -52,7 +55,10 @@ LRESULT DX11Framework::HandleMessage(HWND hWnd, UINT message, WPARAM wParam, LPA
     switch (message)
     {
     case WM_KEYDOWN:
-        //OnKeyDown
+        #ifdef MEMORY_TRACKING
+                if (wParam == VK_F5)
+                    MemoryTracker::CreateReport();
+        #endif
         return 0;
 
     case WM_KEYUP:
@@ -77,6 +83,68 @@ void DX11Framework::Initialise(HINSTANCE hInstance, int nShowCmd)
     InitImGui();
     InitPipelineVariables();
     InitRunTimeData();
+
+    //Temorary Testing Block
+    //#ifdef MEMORY_TRACKING
+    //    {
+    //        auto report = [](const char* label, long long start)
+    //            {
+    //                char line[128];
+    //                std::snprintf(line, sizeof(line), "%-14s delta=%lld\n", label, MemoryTracker::BytesAllocatedThisThread() - start);
+    //                OutputDebugStringA(line);
+    //            };
+
+    //        long long start = MemoryTracker::BytesAllocatedThisThread();
+
+    //        int* array = new int[100];
+    //        report("new[]", start);
+    //        delete[] array;
+    //        report("after delete[]", start);
+
+    //        start = MemoryTracker::BytesAllocatedThisThread();
+    //        int* nothrowArray = new (std::nothrow) int[50];
+    //        report("nothrow new[]", start);
+    //        delete[] nothrowArray;
+    //        report("after delete", start);
+
+    //        start = MemoryTracker::BytesAllocatedThisThread();
+    //        {
+    //            std::vector<int> v;
+    //            v.reserve(25); 
+    //            report("vector", start);
+    //        }
+    //        report("after vector", start);
+
+    //        start = MemoryTracker::BytesAllocatedThisThread();
+    //        {
+    //            auto p = std::make_unique<double>(1.0);
+    //            report("make_unique", start);
+    //        }
+    //        report("after unique", start);
+    //    }
+
+    //    struct alignas(64) Aligned64 { char data[10]; };
+
+    //    long long start = MemoryTracker::BytesAllocatedThisThread();
+    //    size_t countStart = MemoryTracker::AllocationCountThisThread();
+
+    //    Aligned64* aligned = new Aligned64;
+    //    char line[128];
+    //    std::snprintf(line, sizeof(line), "aligned addr %% 64 = %llu, bytes=%lld, count=%zu\n",
+    //        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(aligned) % 64),
+    //        MemoryTracker::BytesAllocatedThisThread() - start,
+    //        MemoryTracker::AllocationCountThisThread() - countStart);
+    //    OutputDebugStringA(line);
+    //    delete aligned;
+
+    //    std::snprintf(line, sizeof(line), "after aligned delete: bytes=%lld, count=%zu\n",
+    //        MemoryTracker::BytesAllocatedThisThread() - start,
+    //        MemoryTracker::AllocationCountThisThread() - countStart);
+    //    OutputDebugStringA(line);
+    //
+    //    MemoryTracker::TestLeak();
+    //#endif
+
 }
 
 void DX11Framework::CreateWindowHandle(HINSTANCE hInstance, int nCmdShow)
