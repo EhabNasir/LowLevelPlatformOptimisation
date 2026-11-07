@@ -68,7 +68,7 @@ struct PhysicsObject
 	Vector3 Velocity() const { return _velocity; }
 
 	std::mutex& Mutex() const { return _mutex; }
-	static inline bool useLocking = true;
+	static inline bool useLocking = false;
 
 	private:
 	Vector3 _position;

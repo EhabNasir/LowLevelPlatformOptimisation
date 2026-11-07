@@ -84,7 +84,7 @@ void DX11Framework::Initialise(HINSTANCE hInstance, int nShowCmd)
     InitPipelineVariables();
     InitRunTimeData();
 
-    //Temorary Testing Block
+    //Temorary Memoery Testing Block
     //#ifdef MEMORY_TRACKING
     //    {
     //        auto report = [](const char* label, long long start)
@@ -142,7 +142,40 @@ void DX11Framework::Initialise(HINSTANCE hInstance, int nShowCmd)
     //        MemoryTracker::AllocationCountThisThread() - countStart);
     //    OutputDebugStringA(line);
     //
-    //    MemoryTracker::TestLeak();
+    //    //MemoryTracker::TestLeak();
+    // 
+    //    std::snprintf(line, sizeof(line), "sizeof(Box)=%zu sizeof(Collider)=%zu alignof(Box)=%zu alignof(Collider)=%zu\n",
+    //        sizeof(Box), sizeof(Box::Collider), alignof(Box), alignof(Box::Collider));
+    //    OutputDebugStringA(line);
+
+    //    {
+    //        size_t countBefore = MemoryTracker::AllocationCountThisThread();
+    //        auto box = std::make_unique<Box>(_device.Get(), _pixelShader, _vertexShader, Vector3{ 0, 0, 0 });
+    //        size_t countDuring = MemoryTracker::AllocationCountThisThread();
+    //        box.reset();
+    //        size_t countAfter = MemoryTracker::AllocationCountThisThread();
+
+    //        char line[128];
+    //        std::snprintf(line, sizeof(line), "box test: before=%zu during=%zu after=%zu\n", countBefore, countDuring, countAfter);
+    //        OutputDebugStringA(line);
+    //    }
+
+    //    {
+    //        struct TestObject : Pooled<TestObject, 16> { int values[4]; };
+
+    //        TestObject* objects[40];
+    //        for (auto& o : objects)
+    //            o = new TestObject;
+
+    //        char line[128];
+    //        std::snprintf(line, sizeof(line), "TestObject: chunks=%zu fallbacks=%zu\n",
+    //            TestObject::PoolChunks(), TestObject::FallbackCount());
+    //        OutputDebugStringA(line);
+
+    //        for (auto& o : objects)
+    //            delete o;
+    //    }
+    // 
     //#endif
 
 }
@@ -416,7 +449,11 @@ void DX11Framework::CreateScene()
 
 void DX11Framework::ResetSim()
 {
+    const auto t0 = std::chrono::steady_clock::now();
     CreateScene();
+    const auto t1 = std::chrono::steady_clock::now();
+    _lastSceneMs = std::chrono::duration<double, std::milli>(t1 - t0).count();
+
     _stepCount = 0;
     _checksum = 0;
     _checksumTaken = false;
@@ -569,6 +606,8 @@ void DX11Framework::SetUpUI()
     else
         ImGui::Text("Hash: waiting for step %llu", static_cast<unsigned long long>(checksumStep));
 
+    ImGui::Text("CreateScene: %.3f ms", _lastSceneMs);
+
     ImGui::Checkbox("Use thread pool", &_usingThreadPool);
     if (ImGui::Button("Restart simulation")) ResetSim();
 
@@ -576,6 +615,14 @@ void DX11Framework::SetUpUI()
     
     ImGui::Checkbox("VSync", &_toggleVsync);
 
+    #ifdef MEMORY_TRACKING
+        ImGui::Text("Allocs: %zu", MemoryTracker::AllocationCountThisThread());
+    #endif
+
+    ImGui::Text("Pool fallbacks: box=%zu collider=%zu", Box::FallbackCount(), Box::Collider::FallbackCount());
+
+    ImGui::Text("Pool chunks: box=%zu collider=%zu", Box::PoolChunks(), Box::Collider::PoolChunks());
+    ImGui::Text("Pool fallbacks: box=%zu collider=%zu", Box::FallbackCount(), Box::Collider::FallbackCount());
 
     ImGui::End();
 }

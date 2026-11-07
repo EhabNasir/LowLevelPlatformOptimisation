@@ -1,10 +1,13 @@
 #include "Box.h"
 
-#include <array>
-#include <cmath>
 #include "Floor.h"
 #include "Util.h"
+
+#include <array>
+#include <cmath>
 #include <DirectXMath.h>
+#include<cassert>
+#include <vector>
 
 using DirectX::XMFLOAT3;
 
@@ -53,6 +56,25 @@ namespace
         16, 17, 18, 16, 18, 19,
         20, 21, 22, 20, 22, 23
     });
+
+    //constexpr size_t poolSlots = 1024;
+    //constexpr size_t slotsPerChunk = 128;
+
+    //size_t& BoxFallbacks() { thread_local size_t count = 0; return count; }
+    //size_t& ColliderFallbacks() { thread_local size_t count = 0; return count; }
+
+
+    //FixedPool& BoxPool()
+    //{
+    //    thread_local FixedPool pool(sizeof(Box), slotsPerChunk);
+    //    return pool;
+    //}
+
+    //FixedPool& ColliderPool()
+    //{
+    //    thread_local FixedPool pool(sizeof(Box::Collider), slotsPerChunk);
+    //    return pool;
+    //}
 }
 
 bool Box::Collider::CheckCollision(const Collider & that) const
@@ -169,3 +191,79 @@ void Box::Render(ID3D11DeviceContext * context)
     context->PSSetShader(_pixelShader.Get(), nullptr, 0);
     context->DrawIndexed(static_cast<UINT>(boxIndices.size()), 0, 0);
 }
+
+//void* Box::operator new(size_t size)
+//{
+//    return ::operator new(size);
+//}
+
+//void* Box::operator new(size_t size)
+//{
+//    assert(size == sizeof(Box));
+//    return ::operator new(size);
+//}
+
+//void Box::operator delete(void* pointer, size_t size)
+//{
+//    ::operator delete(pointer, size);
+//}
+
+//void* Box::Collider::operator new(size_t size)
+//{
+//    return ::operator new(size);
+//}
+
+//void* Box::Collider::operator new(size_t size)
+//{
+//    assert(size == sizeof(Box::Collider));
+//    return ::operator new(size);
+//}
+
+//void Box::Collider::operator delete(void* pointer, size_t size)
+//{
+//    ::operator delete(pointer, size);
+//}
+
+//void* Box::operator new(size_t size)
+//{
+//    assert(size == sizeof(Box));
+//    if (void* pointer = BoxPool().Allocate())
+//        return pointer;
+//    ++BoxFallbacks();
+//    return ::operator new(size);
+//}
+//
+//void Box::operator delete(void* pointer, size_t size)
+//{
+//    if (!pointer)
+//        return;
+//    if (BoxPool().Contains(pointer))
+//        BoxPool().Free(pointer);
+//    else
+//        ::operator delete(pointer, size);
+//}
+//
+//void* Box::Collider::operator new(size_t size)
+//{
+//    assert(size == sizeof(Box::Collider));
+//    if (void* pointer = ColliderPool().Allocate())
+//        return pointer;
+//    ++ColliderFallbacks();
+//    return ::operator new(size);
+//}
+//
+//void Box::Collider::operator delete(void* pointer, size_t size)
+//{
+//    if (!pointer)
+//        return;
+//    if (ColliderPool().Contains(pointer))
+//        ColliderPool().Free(pointer);
+//    else
+//        ::operator delete(pointer, size);
+//}
+//
+//size_t Box::FallbackCount() { return BoxFallbacks(); }
+//size_t Box::PoolChunks() { return BoxPool().ChunkCount(); }
+//
+//size_t Box::Collider::FallbackCount() { return ColliderFallbacks(); }
+//size_t Box::Collider::PoolChunks() { return ColliderPool().ChunkCount(); }

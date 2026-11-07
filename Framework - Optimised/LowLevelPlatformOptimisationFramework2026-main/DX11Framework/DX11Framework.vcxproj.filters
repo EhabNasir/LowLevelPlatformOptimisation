@@ -107,6 +107,9 @@
     <ClInclude Include="MemoryTracker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FixedPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SimpleShaders.hlsl">

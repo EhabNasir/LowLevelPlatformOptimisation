@@ -67,6 +67,8 @@ class DX11Framework
 	std::vector<BodyResult> _results;
 
 	ThreadPool _pool;
+	
+	double _lastSceneMs = 0.0;
 
 	//Testing data
 	uint64_t _stepCount = 0;
